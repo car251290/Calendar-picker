@@ -103,12 +103,6 @@ if (!function_exists('dataShowFor')) {
 
 <?php endif; ?>
 
-
-
-
-<!-- Include Bootstrap CSS -->
-<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-
 <!-- Include full jQuery -->
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 
@@ -139,20 +133,27 @@ if (!function_exists('dataShowFor')) {
 <div id="result-1"></div>
 
 <script type="text/javascript">
-    document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('DOMContentLoaded', () => {
         let startDate = null;
         let endDate = null;
-        //Retrieve the start and end dates from the input field
+        //let isCalendarVisible = false;
+
+        // Retrieve the saved date range from localStorage
         const savedRange = localStorage.getItem('dateRange');
-        if(savedRange){
-            const [savedStartDate, savedEndDate] = savedRange.split(' - ')
-                .map(d => new Date(d.split('-').reverse().join('-')));
+        if (savedRange) {
+            const [savedStartDate, savedEndDate] = savedRange.split(' - ').map(dateStr => {
+                const [day, month, year] = dateStr.split('-').map(Number);
+                return new Date(year, month - 1, day);
+            });
             startDate = savedStartDate;
             endDate = savedEndDate;
+
+            // Populate the input field with the saved range
+            updateInputField();
         }
 
         // Initialize the Bootstrap datepicker
-        let picker = $('#filter_created_time_range').datepicker({
+        const picker = $('#filter_created_time_range').datepicker({
             format: 'dd-mm-yyyy',
             autoclose: false,
             templates: {
@@ -160,17 +161,21 @@ if (!function_exists('dataShowFor')) {
                 rightArrow: '&raquo;',
             },
             beforeShowDay: function (date) {
-                // Highlight logic for the selected range
-                if (!startDate || !endDate) return {};
-                if (date >= startDate && date <= endDate) {
-                    return {
-                        classes: 'highlighted',
-                    };
+                // Highlight single date or range
+                if (startDate && !endDate) {
+                    if (date.getTime() === startDate.getTime()) {
+                        return { classes: 'highlighted' }; // Highlight single selected date
+                    }
+                } else if (startDate && endDate) {
+                    if (date >= startDate && date <= endDate) {
+                        return { classes: 'highlighted' }; // Highlight range
+                    }
                 }
-                return {};
-            }
+                return {}; // Default styling
+            },
         }).on('changeDate', function (e) {
             const selectedDate = e.date;
+
             // Manage start and end dates
             if (!startDate || (startDate && endDate)) {
                 startDate = selectedDate;
@@ -180,7 +185,8 @@ if (!function_exists('dataShowFor')) {
             } else {
                 startDate = selectedDate;
             }
-            // Update the input field and refresh the calendar
+
+            // Update the input field and save to localStorage
             updateInputField();
             saveDatesToStorage();
             picker.datepicker('update');
@@ -198,13 +204,7 @@ if (!function_exists('dataShowFor')) {
             }
         }
 
-        //function to format a date as dd-mm-yyyy
-        function formatDate(date) {
-            const day = String(date.getDate()).padStart(2, '0');
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const year = date.getFullYear();
-            return `${day}-${month}-${year}`;
-        }
+        // Function to save the dates to localStorage
         function saveDatesToStorage() {
             if (startDate && endDate) {
                 const range = `${formatDate(startDate)} - ${formatDate(endDate)}`;
@@ -213,82 +213,93 @@ if (!function_exists('dataShowFor')) {
                 localStorage.removeItem('dateRange');
             }
         }
-        if(savedRange){
-            document.getElementById('filter_created_time_range').value = savedRange;
+
+        // Function to format a date as dd-mm-yyyy
+        function formatDate(date) {
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            return `${day}-${month}-${year}`;
         }
+        // Show/hide the calendar when the button is clicked
+        let isCalendarVisible = false;
+        document.getElementById('toggleCalendar').addEventListener('click', function (event) {
+            event.preventDefault();
+            if (isCalendarVisible) {
+                $('#filter_created_time_range').datepicker('hide');
+                updateInputField(); // update the input field after calendar is hidden
+            } else {
+                $('#filter_created_time_range').datepicker('show');
+            }
+            isCalendarVisible = !isCalendarVisible; // Toggle the visibility state
+        });
+    });
+
+
+
 
         // Add custom styles for the highlighted range
         const style = document.createElement('style');
         style.innerHTML = `
-           .d-flex {
-        display: flex;
-        align-items: center;
+            .d-flex {
+                display: flex;
+                align-items: center;
+            }
 
-        }
+            #filter_created_time_range {
+                font-size: 16px;
+                font-weight: bold;
+                text-align: center;
+                color: #FF5722;
+                border: 1px solid #FF5722;
+                border-right: none;
+                border-radius: 5px 0 0 5px;
+                height: 38px;
+                padding: 0 10px;
+                line-height: 1.5;
+                margin: 0;
+            }
 
-    #filter_created_time_range {
-        font-size: 16px;
-        font-weight: bold;
-        text-align: center;
-        color: #FF5722;
-        border: 1px solid #FF5722;
-        border-right: none;
-        border-radius: 5px 0 0 5px;
-        height: 38px;
-        padding:0 10px;
-        line-height:1.5;
-        margin: 0;
-      }
+            .datepicker-days td.highlighted {
+                background-color: #FFA500 !important;
+                color: #fff !important;
+                border-radius: 10px;
+            }
 
-    .datepicker-days td.highlighted {
-        background-color: #FFA500 !important;
-        color: #fff !important;
-        border-radius: 10px;
-    }
+            .datepicker-days td.highlighted:hover {
+                background-color: #FF8C00 !important;
+            }
 
-    .datepicker-days td.highlighted:hover {
-        background-color: #FF8C00 !important;
-    }
+            #toggleCalendar {
+                font-size: 16px;
+                color: #ffffff;
+                background-color: #007bff;
+                border: 1px solid #FF5722; /* Same border color as input */
+                border-left: none; /* Remove the left border for seamless look */
+                border-radius: 0 5px 5px 0; /* Rounded corners for the right side */
+                height: 39px; /* Match input height */
+                display: flex;
+                align-items: center; /* Center icon vertically */
+                justify-content: center; /* Center icon horizontally */
+                padding: 0 12px;
+                margin: 0; /* Remove extra margins */
+                transform: translateY(4.5px);
+            }
 
-    #toggleCalendar {
-        font-size: 16px;
-        color: #ffffff;
-        background-color: #007bff;
-        border: 1px solid #FF5722; /* Same border color as input */
-        border-left: none; /* Remove the left border for seamless look */
-        border-radius: 0 5px 5px 0; /* Rounded corners for the right side */
-        height: 39px; /* Match input height */
-        display: flex;
-        align-items: center; /* Center icon vertically */
-        justify-content: center; /* Center icon horizontally */
-        padding: 0 12px;
-        margin: 0; /* Remove extra margins */
-        transform: translateY(4.5px);
-    }
+            #toggleCalendar i {
+                font-size: 16px;
+            }
 
-    #toggleCalendar i {
-        font-size: 16px;
-    }
-
-    #toggleCalendar:hover {
-        background-color: #0056b3;
-    }
-     /* Highlight styles for the datepicker */
-    .datepicker-days td.highlighted {
-        background-color: #FFA500 !important;
-        color: #fff !important;
-        border-radius: 10px;
-    }
-
-    .datepicker-days td.highlighted:hover {
-        background-color: #FF8C00 !important;
-    }
+            #toggleCalendar:hover {
+                background-color: #0056b3;
+            }
         `;
         document.head.appendChild(style);
 
         // Show the calendar when the button is clicked
-        document.getElementById('toggleCalendar').addEventListener('click', function () {
-            $('#filter_created_time_range').datepicker('show');
-        });
-    });
+        //document.getElementById('toggleCalendar').addEventListener('click', function (event) {
+          //  event.preventDefault();
+          // $('#filter_created_time_range').datepicker('show');
+        //});
+    //});
 </script>
