@@ -1,13 +1,5 @@
 <?php
 
-/**
- * @package     Joomla.Site
- * @subpackage  Layout
- *
- * @copyright   (C) 2013 Open Source Matters, Inc. <https://www.joomla.org>
- * @license     GNU General Public License version 2 or later; see LICENSE.txt
- */
-
 defined('_JEXEC') or die;
 
 use Joomla\CMS\Factory;
@@ -18,7 +10,7 @@ $shouldDisplayReceivedTime = str_contains($displayData['customValues']['received
 // the device if selected and the device count is calculated
 $selectedDevices = isset($displayData['selectedDevices']) ? $displayData['selectedDevices'] : [];
 
-if(!function_exists('shouldShowField')) {
+if (!function_exists('shouldShowField')) {
     function shouldShowField($name) {
         global $shouldDisplayReceivedTime;
 
@@ -27,7 +19,7 @@ if(!function_exists('shouldShowField')) {
     }
 }
 
-if(!function_exists('styleForField')) {
+if (!function_exists('styleForField')) {
     function styleForField($name) {
         $isTimeField = str_contains($name, 'time');
         $maxWidth = $isTimeField ? "210" : "600";
@@ -35,9 +27,8 @@ if(!function_exists('styleForField')) {
     }
 }
 
-if(!function_exists('dataShowFor')) {
-    function dataShowFor($field) {
-        global $wa; // Ensure $wa is available in this function
+if (!function_exists('dataShowFor')) {
+    function dataShowFor($field, $wa) {
         $dataShowOn = '';
         if ($field->showon) {
             $wa->useScript('showon');
@@ -48,183 +39,74 @@ if(!function_exists('dataShowFor')) {
     }
 }
 
-// Load the form filters
+// Load the form filters changes by JC
+
 $filters = $displayData['view']->filterForm->getGroup('filter');
 $deviceCount = count($selectedDevices);
+
+$wa = Factory::getApplication()->getDocument()->getWebAssetManager();
+$wa->useScript('showon');
 
 /** @var Joomla\CMS\WebAsset\WebAssetManager $wa */
 $wa = Factory::getApplication()->getDocument()->getWebAssetManager();
 
 ?>
-
 <?php if ($filters) : ?>
     <div id="device-count" style="margin-bottom: 10px; font-weight: bold;">
-        <?php echo $deviceCount > 0
-            ? "$deviceCount device" . ($deviceCount > 1 ? "s have" : " has"): ""; ?>
+        <?php echo $deviceCount > 0 ? "$deviceCount device" . ($deviceCount > 1 ? "s have" : " has") . " been selected." : ''; ?>
     </div>
-    <?php foreach ($filters as $name => $field) : ?>
-        <?php if (shouldShowField($name)) : ?>
-            <div <?php styleForField($name); ?> class="js-stools-field-filter" <?php dataShowFor($field); ?>>
-                <span class="visually-hidden"><?php echo $field->label; ?></span>
-                <?php echo $field->input; ?>
-            </div>
-        <?php endif; ?>
-    <?php endforeach; ?>
-<?php endif; ?>
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Select with Checkboxes on the Right</title>
-
-    <!-- MDBootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/mdbootstrap/css/mdb.min.css" rel="stylesheet">
-
-    <!-- Optional: Custom Style -->
-    <style>
-        body {
-            padding: 50px;
-        }
-
-        .custom-select-wrapper {
-            position: relative;
-            width: 100%;
-            max-width: 600px;
-        }
-
-        .custom-select {
-            width: 100%;
-            padding: 10px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-
-        /* Custom dropdown for checkboxes */
-        .custom-dropdown {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            border: 1px solid #ccc;
-            background-color: #fff;
-            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-            display: none;
-            max-height: 250px;
-            overflow-y: auto;
-            z-index: 100;
-        }
-
-        .custom-dropdown.open {
-            display: block;
-        }
-
-        /* Style for the checkbox list */
-        .checkbox-list {
-            list-style-type: none;
-            margin: 0;
-            padding: 0;
-        }
-
-        .checkbox-item {
-            padding: 10px;
-            border-bottom: 1px solid #f0f0f0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .checkbox-item:last-child {
-            border-bottom: none;
-        }
-
-        .checkbox-item label {
-            margin-right: auto;
-        }
-
-        .checkbox-item input[type="checkbox"] {
-            margin-left: auto;
-        }
-
-        /* Clear Selection Button */
-        .clear-selection {
-            position: absolute;
-            right: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            cursor: pointer;
-            color: #888;
-            font-size: 18px;
-            padding: 0 5px;
-            transition: color 0.3s;
-        }
-
-        .clear-selection:hover {
-            color: red;
-        }
-
-        .clear-selection.hidden {
-            display: none;
-        }
-
-        /* Style for the "Multiple devices selected" label */
-        .multiple-devices {
-            font-style: italic;
-            color: #888;
-        }
-
-        /* Style for the "X" button next to each checkbox */
-        .checkbox-item .remove-device {
-            font-size: 18px;
-            cursor: pointer;
-            color: red;
-            margin-left: 10px;
-        }
-
-        .checkbox-item .remove-device:hover {
-            color: darkred;
-        }
-
-    </style>
-</head>
-<body>
-
-<div class="form-group custom-select-wrapper">
-    <label for="device-select"></label>
-    <div class="custom-select" id="device-select">
-        <span id="selected-devices-text">Select a device</span>
-        <span id="clear-selection" class="clear-selection hidden">&#10006;</span>
-    </div>
-
-    <!-- Custom dropdown with checkboxes -->
-    <div id="dropdown" class="custom-dropdown">
-        <ul class="checkbox-list">
-
+    <?php if ($deviceCount >= 4) : ?>
+        <div style="color: red; font-weight: bold;">
+            Multiple devices selected.
+        </div>
+    <?php endif; ?>
+    <div class="joomla-form-field-list-fancy-select" id="device-select">
+        <!-- <label for="device-select">Select Devices</label> -->
+        <div class="custom-select">
+             <span id="selected-devices-text">Select a device</span>
+            <span id="clear-selection" class="clear-selection hidden">&#10006;</span>
+        </div>
+        <ul id="dropdown">
             <?php
-            // Replace with dynamic device options using Joomla's database query
+            // Fetch dynamic device options using Joomla's database query
             $db = Factory::getDbo();
             $query = "SELECT CONCAT(`name`, ' [', `serial_number`, ']') AS val, `serial_number` as name FROM `#__iot_devices` ORDER BY val ASC";
             $db->setQuery($query);
             $devices = $db->loadObjectList();
 
             // Loop through the fetched devices and generate the <li> items with checkboxes
-            foreach ($devices as $device) : ?>
-                <li class="checkbox-item">
-                    <label>
-                        <input type="checkbox" value="<?php echo $device->name; ?>" data-name="<?php echo $device->val; ?>">
-                        <?php echo $device->val; ?>
-                    </label>
-                    <span class="remove-device" data-name="<?php echo $device->name; ?>">&#10006;</span>
-                </li>
-            <?php endforeach; ?>
-
+            if (!empty($devices)) :
+                foreach ($devices as $device) : ?>
+                    <li class="checkbox-item">
+                        <label for="device-<?php echo htmlspecialchars((string) $device->name, ENT_QUOTES, 'UTF-8'); ?>">
+                            <input
+                                    type="checkbox"
+                                    id="device-<?php echo htmlspecialchars((string) $device->name, ENT_QUOTES, 'UTF-8'); ?>"
+                                    value="<?php echo htmlspecialchars((string) $device->name, ENT_QUOTES, 'UTF-8'); ?>"
+                                    data-name="<?php echo htmlspecialchars((string) $device->val, ENT_QUOTES, 'UTF-8'); ?>">
+                            <?php echo htmlspecialchars((string) $device->val, ENT_QUOTES, 'UTF-8'); ?>
+                        </label>
+                        <span
+                                class="remove-device"
+                                data-name="<?php echo htmlspecialchars((string) $device->name, ENT_QUOTES, 'UTF-8'); ?>">
+                            &#10006;
+                        </span>
+                    </li>
+                <?php endforeach;
+            else : ?>
+                <p><?php echo 'No devices available'; ?></p>
+            <?php endif; ?>
         </ul>
     </div>
-</div>
-
-<!-- MDBootstrap JS -->
-<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/mdbootstrap/js/mdb.min.js"></script>
+    <?php foreach ($filters as $name => $field) : ?>
+        <?php if (isset($field) && shouldShowField($name)) : ?>
+            <div <?php styleForField($name); ?> class="js-stools-field-filter" <?php dataShowFor($field, $wa); ?>>
+                <span class="visually-hidden"><?php echo htmlspecialchars((string) $field->label, ENT_QUOTES, 'UTF-8'); ?></span>
+                <?php echo $field->input; ?>
+            </div>
+        <?php endif; ?>
+    <?php endforeach; ?>
+<?php endif; ?>
 
 <!-- Custom Script to Handle Dropdown, Checkbox, and Clear Selection -->
 <script>
@@ -300,6 +182,48 @@ $wa = Factory::getApplication()->getDocument()->getWebAssetManager();
         });
     });
 </script>
+<style>
+    .joomla-form-field-list-fancy-select {
+        position: relative;
+        display: inline-block;
+        width: 100%;
+    }
 
-</body>
-</html>
+    .joomla-form-field-list-fancy-select label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+    }
+
+    .joomla-form-field-list-fancy-select ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        border: 1px solid #ccc;
+        max-height: 200px;
+        overflow-y: auto;
+    }
+
+    .joomla-form-field-list-fancy-select .checkbox-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 5px;
+        border-bottom: 1px solid #eee;
+    }
+
+    .joomla-form-field-list-fancy-select .checkbox-item label {
+        flex-grow: 1;
+    }
+
+    .joomla-form-field-list-fancy-select .remove-device {
+        cursor: pointer;
+        color: red;
+        margin-left: 10px;
+    }
+
+    .joomla-form-field-list-fancy-select .multiple-devices {
+        color: red;
+        font-weight: bold;
+    }
+</style>
