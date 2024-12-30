@@ -51,6 +51,7 @@ $wa->useScript('showon');
 $wa = Factory::getApplication()->getDocument()->getWebAssetManager();
 
 ?>
+
 <?php if ($filters) : ?>
     <div id="device-count" style="margin-bottom: 10px; font-weight: bold;">
         <?php echo $deviceCount > 0 ? "$deviceCount device" . ($deviceCount > 1 ? "s have" : " has") . " been selected." : ''; ?>
@@ -64,7 +65,8 @@ $wa = Factory::getApplication()->getDocument()->getWebAssetManager();
         <label id="toggle-device-label" class="toggle-label">
             Select Devices
         </label>
-        <div id="dropdown-container" class="dropdown-container">
+        <div id="dropdown-container" class="dropdown-container" style="display: none;">
+            <input type="text" id="search-bar" placeholder="Search devices..." onkeyup="filterDevices()">
             <ul id="dropdown">
                 <?php
                 $db = Factory::getDbo();
@@ -93,7 +95,6 @@ $wa = Factory::getApplication()->getDocument()->getWebAssetManager();
             </ul>
         </div>
     </div>
-
     <?php foreach ($filters as $name => $field) : ?>
         <?php if (isset($field) && shouldShowField($name)) : ?>
             <div <?php styleForField($name); ?> class="js-stools-field-filter" <?php dataShowFor($field, $wa); ?>>
@@ -110,9 +111,36 @@ $wa = Factory::getApplication()->getDocument()->getWebAssetManager();
         const dropdown = document.getElementById('dropdown');
         const toggleLabel = document.getElementById('toggle-device-label');
         const dropdownContainer = document.getElementById('dropdown-container');
+        const searchBar = document.getElementById('search-bar'); // Corrected variable name
 
         function toggleDropdown() {
             dropdownContainer.classList.toggle('open');
+            //searchBar.classList.toggle('visible'); // Corrected variable name
+            searchBar.style.display = searchBar.style.display === 'block' ? 'none' : 'block';
+            console.log("Toggled dropdown visibility.");
+        }
+
+        toggleLabel.addEventListener('click', function(event) {
+            const isVisible = dropdownContainer.style.display === 'block';
+            dropdownContainer.style.display = isVisible ? 'none' : 'block';
+            event.preventDefault();
+            searchBar.classList.toggle('visible');
+            toggleDropdown();
+        });
+
+        // Function for the search
+        function filterDevices() {
+            const searchInput = searchBar.value.toLowerCase();
+            const items = document.querySelectorAll('#dropdown .checkbox-item');
+
+            items.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                if (text.includes(searchInput)) {
+                    item.style.display = '';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
         }
 
         function updateLabelText() {
@@ -128,11 +156,6 @@ $wa = Factory::getApplication()->getDocument()->getWebAssetManager();
                 toggleLabel.textContent = 'Select Devices';
             }
         }
-
-        toggleLabel.addEventListener('click', function(event) {
-            event.preventDefault();
-            toggleDropdown();
-        });
 
         dropdown.addEventListener('change', updateLabelText);
 
@@ -150,6 +173,8 @@ $wa = Factory::getApplication()->getDocument()->getWebAssetManager();
         document.addEventListener('click', function(event) {
             if (!dropdownContainer.contains(event.target) && !toggleLabel.contains(event.target)) {
                 dropdownContainer.classList.remove('open');
+                dropdownContainer.style.display = 'none';
+                searchBar.classList.remove('visible');
             }
         });
     });
@@ -189,7 +214,7 @@ $wa = Factory::getApplication()->getDocument()->getWebAssetManager();
     }
 
     .toggle-label {
-        background-color: rgb(170, 177, 184);
+        background-color: rgba(170, 177, 184, 0.5); /* Gray-white with transparency */
         color: #ffffff;
         padding: 10px;
         cursor: pointer;
@@ -201,8 +226,49 @@ $wa = Factory::getApplication()->getDocument()->getWebAssetManager();
         margin: 0 auto;
     }
 
+    #search-bar {
+        display: block;
+        width: 100%;
+        padding: 0.375rem 0.75rem;
+        font-size: 1rem;
+        font-weight: 400;
+        line-height: 1.5;
+        color: #495057;
+        background-color: #fff;
+        background-clip: padding-box;
+        border: 1px solid #ced4da;
+        border-radius: 0.25rem;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    }
+
+    #search-bar.visible {
+        display: block;
+    }
+
+    #search-bar:focus {
+        color: #495057;
+        background-color: #fff;
+        border-color: #80bdff;
+        outline: 0;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+
     .dropdown-container {
+        display: none; /* Initially hidden */
         position: relative;
+        background-color: #fff;
+        border: 1px solid #ccc;
+        padding: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+    }
+    #dropdown {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        max-height: 200px;
+        overflow-y: auto;
+        border-top: 1px solid #ccc;
     }
 
     .dropdown-container ul {
@@ -230,7 +296,11 @@ $wa = Factory::getApplication()->getDocument()->getWebAssetManager();
         border-bottom: 1px solid #f0f0f0;
         display: flex;
         justify-content: space-between;
+        cursor: pointer;
         align-items: center;
+    }
+    .checkbox-item:hover {
+        background-color: #f9f9f9;
     }
 
     .remove-item {
@@ -239,6 +309,7 @@ $wa = Factory::getApplication()->getDocument()->getWebAssetManager();
         font-size: 14px;
     }
 </style>
+
 
 
 
