@@ -61,43 +61,39 @@ $wa = Factory::getApplication()->getDocument()->getWebAssetManager();
         </div>
     <?php endif; ?>
     <div class="joomla-form-field-list-fancy-select" id="device-select">
-        <!-- <label for="device-select">Select Devices</label> -->
-        <div class="custom-select">
-             <span id="selected-devices-text">Select a device</span>
-            <span id="clear-selection" class="clear-selection hidden">&#10006;</span>
-        </div>
-        <ul id="dropdown">
-            <?php
-            // Fetch dynamic device options using Joomla's database query
-            $db = Factory::getDbo();
-            $query = "SELECT CONCAT(`name`, ' [', `serial_number`, ']') AS val, `serial_number` as name FROM `#__iot_devices` ORDER BY val ASC";
-            $db->setQuery($query);
-            $devices = $db->loadObjectList();
+        <label id="toggle-device-label" class="toggle-label">
+            Select Devices
+        </label>
+        <div id="dropdown-container" class="dropdown-container">
+            <ul id="dropdown">
+                <?php
+                $db = Factory::getDbo();
+                $query = "SELECT CONCAT(`name`, ' [', `serial_number`, ']') AS val, `serial_number` as name FROM `#__iot_devices` ORDER BY val ASC";
+                $db->setQuery($query);
+                $devices = $db->loadObjectList();
 
-            // Loop through the fetched devices and generate the <li> items with checkboxes
-            if (!empty($devices)) :
-                foreach ($devices as $device) : ?>
-                    <li class="checkbox-item">
-                        <label for="device-<?php echo htmlspecialchars((string) $device->name, ENT_QUOTES, 'UTF-8'); ?>">
-                            <input
-                                    type="checkbox"
-                                    id="device-<?php echo htmlspecialchars((string) $device->name, ENT_QUOTES, 'UTF-8'); ?>"
-                                    value="<?php echo htmlspecialchars((string) $device->name, ENT_QUOTES, 'UTF-8'); ?>"
-                                    data-name="<?php echo htmlspecialchars((string) $device->val, ENT_QUOTES, 'UTF-8'); ?>">
-                            <?php echo htmlspecialchars((string) $device->val, ENT_QUOTES, 'UTF-8'); ?>
-                        </label>
-                        <span
-                                class="remove-device"
-                                data-name="<?php echo htmlspecialchars((string) $device->name, ENT_QUOTES, 'UTF-8'); ?>">
-                            &#10006;
-                        </span>
-                    </li>
-                <?php endforeach;
-            else : ?>
-                <p><?php echo 'No devices available'; ?></p>
-            <?php endif; ?>
-        </ul>
+                if (!empty($devices)) :
+                    foreach ($devices as $device) : ?>
+                        <li class="checkbox-item">
+                            <label for="device-<?php echo htmlspecialchars((string) $device->name, ENT_QUOTES, 'UTF-8'); ?>">
+                                <input
+                                        type="checkbox"
+                                        id="device-<?php echo htmlspecialchars((string) $device->name, ENT_QUOTES, 'UTF-8'); ?>"
+                                        name="device[]"
+                                        value="<?php echo htmlspecialchars((string) $device->name, ENT_QUOTES, 'UTF-8'); ?>"
+                                        data-name="<?php echo htmlspecialchars((string) $device->val, ENT_QUOTES, 'UTF-8'); ?>">
+                                <?php echo htmlspecialchars((string) $device->val, ENT_QUOTES, 'UTF-8'); ?>
+                            </label>
+                            <span class="remove-item" data-device-id="device-<?php echo htmlspecialchars((string) $device->name, ENT_QUOTES, 'UTF-8'); ?>">✖</span>
+                        </li>
+                    <?php endforeach; ?>
+                <?php else : ?>
+                    <p>No devices available</p>
+                <?php endif; ?>
+            </ul>
+        </div>
     </div>
+
     <?php foreach ($filters as $name => $field) : ?>
         <?php if (isset($field) && shouldShowField($name)) : ?>
             <div <?php styleForField($name); ?> class="js-stools-field-filter" <?php dataShowFor($field, $wa); ?>>
@@ -107,123 +103,142 @@ $wa = Factory::getApplication()->getDocument()->getWebAssetManager();
         <?php endif; ?>
     <?php endforeach; ?>
 <?php endif; ?>
-
-<!-- Custom Script to Handle Dropdown, Checkbox, and Clear Selection -->
+<!-- Custom Script to Handle Dropdown, Checkbox Selection, and Collapse -->
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const selectElement = document.getElementById('device-select');
         const dropdown = document.getElementById('dropdown');
-        const selectedText = document.getElementById('selected-devices-text');
-        const clearSelectionButton = document.getElementById('clear-selection');
+        const toggleLabel = document.getElementById('toggle-device-label');
+        const dropdownContainer = document.getElementById('dropdown-container');
 
-        // Function to toggle the dropdown visibility
         function toggleDropdown() {
-            dropdown.classList.toggle('open');
+            dropdownContainer.classList.toggle('open');
         }
 
-        // Function to handle checkbox selection and update the text
-        function updateSelectedDevices() {
-            const selectedCheckboxes = Array.from(dropdown.querySelectorAll('input[type="checkbox"]:checked'));
-            const selectedValues = selectedCheckboxes.map(checkbox => checkbox.dataset.name);
+        function updateLabelText() {
+            const selectedCheckboxes = dropdown.querySelectorAll('input[type="checkbox"]:checked');
+            const selectedDevices = Array.from(selectedCheckboxes).map(checkbox => checkbox.dataset.name);
+            const uniqueDevices = [...new Set(selectedDevices)];
 
-            if (selectedValues.length > 4) {
-                // If more than 4 devices are selected, show "Multiple devices selected"
-                const lastDevice = selectedValues.pop(); // Remove the last device from the list
-                selectedText.textContent = `Multiple devices selected, last device: ${lastDevice}`;
-                selectedText.classList.add('multiple-devices');
-            } else if (selectedValues.length > 0) {
-                // Otherwise, show the selected devices as a comma-separated list
-                selectedText.textContent = selectedValues.join(', ');
-                selectedText.classList.remove('multiple-devices');
+            if (uniqueDevices.length >= 2) {
+                toggleLabel.textContent = `Multiple devices selected: ${uniqueDevices[uniqueDevices.length - 1]}`;
+            } else if (uniqueDevices.length === 1) {
+                toggleLabel.textContent = `Selected device: ${uniqueDevices[0]}`;
             } else {
-                selectedText.textContent = 'Select a device';
-                selectedText.classList.remove('multiple-devices');
-            }
-
-            // Show/hide the clear selection button
-            if (selectedValues.length > 0) {
-                clearSelectionButton.classList.remove('hidden');
-            } else {
-                clearSelectionButton.classList.add('hidden');
+                toggleLabel.textContent = 'Select Devices';
             }
         }
 
-        // Toggle dropdown when select is clicked
-        selectElement.addEventListener('click', function(event) {
-            event.stopPropagation();
+        toggleLabel.addEventListener('click', function(event) {
+            event.preventDefault();
             toggleDropdown();
         });
 
-        // Update selected devices when checkbox is clicked
-        dropdown.addEventListener('change', updateSelectedDevices);
+        dropdown.addEventListener('change', updateLabelText);
 
-        // Clear selection when the "X" button is clicked
-        clearSelectionButton.addEventListener('click', function() {
-            const checkboxes = dropdown.querySelectorAll('input[type="checkbox"]');
-            checkboxes.forEach(checkbox => checkbox.checked = false);
-            updateSelectedDevices();
-            toggleDropdown(); // Close the dropdown
-        });
-
-        // Remove device from the selected list when "X" next to the checkbox is clicked
         dropdown.addEventListener('click', function(event) {
-            if (event.target.classList.contains('remove-device')) {
-                const checkbox = event.target.previousElementSibling.querySelector('input[type="checkbox"]');
-                checkbox.checked = false;
-                updateSelectedDevices();
+            if (event.target.classList.contains('remove-item')) {
+                const deviceId = event.target.getAttribute('data-device-id');
+                const checkbox = document.getElementById(deviceId);
+                if (checkbox) {
+                    checkbox.checked = false;
+                }
+                updateLabelText();
             }
         });
 
-        // Close dropdown when clicking outside of it
         document.addEventListener('click', function(event) {
-            if (!selectElement.contains(event.target)) {
-                dropdown.classList.remove('open');
+            if (!dropdownContainer.contains(event.target) && !toggleLabel.contains(event.target)) {
+                dropdownContainer.classList.remove('open');
             }
         });
     });
 </script>
+
 <style>
     .joomla-form-field-list-fancy-select {
         position: relative;
-        display: inline-block;
-        width: 100%;
-    }
-
-    .joomla-form-field-list-fancy-select label {
-        display: block;
-        margin-bottom: 5px;
-        font-weight: bold;
+        width: 30%;
     }
 
     .joomla-form-field-list-fancy-select ul {
         list-style: none;
         padding: 0;
         margin: 0;
-        border: 1px solid #ccc;
+        border: 1px solid #c80e0e;
         max-height: 200px;
         overflow-y: auto;
     }
 
     .joomla-form-field-list-fancy-select .checkbox-item {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
         padding: 5px;
-        border-bottom: 1px solid #eee;
-    }
-
-    .joomla-form-field-list-fancy-select .checkbox-item label {
-        flex-grow: 1;
+        border-bottom: 1px solid #ffffff;
     }
 
     .joomla-form-field-list-fancy-select .remove-device {
+        position: absolute;
+        top: 5px;
+        right: 10px;
         cursor: pointer;
         color: red;
-        margin-left: 10px;
+        font-size: 18px;
     }
 
-    .joomla-form-field-list-fancy-select .multiple-devices {
+    .dropdown-container.open ul {
+        display: block;
+    }
+
+    .toggle-label {
+        background-color: rgb(170, 177, 184);
+        color: #ffffff;
+        padding: 10px;
+        cursor: pointer;
+        text-align: center;
+        width: auto;
+        max-width: 100%;
+        border-radius: 8px;
+        display: block;
+        margin: 0 auto;
+    }
+
+    .dropdown-container {
+        position: relative;
+    }
+
+    .dropdown-container ul {
+        display: none;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        border: 1px solid #c80e0e;
+        background-color: #ffffff;
+        max-height: 200px;
+        overflow-y: auto;
+        width: 100%;
+        position: relative;
+        padding-right: 40px; /* Space for the "X" button */
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+    }
+
+    .dropdown-container.open ul {
+        display: block;
+    }
+
+    .checkbox-item {
+        padding: 5px;
+        border-bottom: 1px solid #f0f0f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .remove-item {
+        cursor: pointer;
         color: red;
-        font-weight: bold;
+        font-size: 14px;
     }
 </style>
+
+
+
