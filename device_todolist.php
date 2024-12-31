@@ -49,6 +49,7 @@ $wa->useScript('showon');
 
 /** @var Joomla\CMS\WebAsset\WebAssetManager $wa */
 $wa = Factory::getApplication()->getDocument()->getWebAssetManager();
+$wa->registerAndUseStyle('bootstrap-icons', 'https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css');
 
 ?>
 
@@ -63,19 +64,25 @@ $wa = Factory::getApplication()->getDocument()->getWebAssetManager();
     <?php endif; ?>
     <div class="joomla-form-field-list-fancy-select" id="device-select">
         <label id="toggle-device-label" class="toggle-label">
-            Select Devices
+            -Select Devices-
         </label>
         <div id="dropdown-container" class="dropdown-container" style="display: none;">
-            <input type="text" id="search-bar" placeholder="Search devices..." onkeyup="filterDevices()">
+            <div class="search-bar-container">
+                <input type="text" id="search-bar" placeholder="Search devices..." onkeyup="filterDevices()">
+                <i class="bi bi-search search-icon"></i> <!-- Search Icon -->
+            </div>
             <ul id="dropdown">
                 <?php
                 $db = Factory::getDbo();
                 $query = "SELECT CONCAT(`name`, ' [', `serial_number`, ']') AS val, `serial_number` as name FROM `#__iot_devices` ORDER BY val ASC";
                 $db->setQuery($query);
                 $devices = $db->loadObjectList();
+                $selectedDevices = []; // Initialize the selected devices array.
 
                 if (!empty($devices)) :
-                    foreach ($devices as $device) : ?>
+                    foreach ($devices as $device) :
+                        // Check if the device is selected
+                        $isChecked = in_array($device->name, $selectedDevices) ? 'checked' : ''; ?>
                         <li class="checkbox-item">
                             <label for="device-<?php echo htmlspecialchars((string) $device->name, ENT_QUOTES, 'UTF-8'); ?>">
                                 <input
@@ -83,7 +90,9 @@ $wa = Factory::getApplication()->getDocument()->getWebAssetManager();
                                         id="device-<?php echo htmlspecialchars((string) $device->name, ENT_QUOTES, 'UTF-8'); ?>"
                                         name="device[]"
                                         value="<?php echo htmlspecialchars((string) $device->name, ENT_QUOTES, 'UTF-8'); ?>"
-                                        data-name="<?php echo htmlspecialchars((string) $device->val, ENT_QUOTES, 'UTF-8'); ?>">
+                                        data-name="<?php echo htmlspecialchars((string) $device->val, ENT_QUOTES, 'UTF-8'); ?>"
+                                    <?php echo $isChecked; ?>
+                                >
                                 <?php echo htmlspecialchars((string) $device->val, ENT_QUOTES, 'UTF-8'); ?>
                             </label>
                             <span class="remove-item" data-device-id="device-<?php echo htmlspecialchars((string) $device->name, ENT_QUOTES, 'UTF-8'); ?>">✖</span>
@@ -113,9 +122,10 @@ $wa = Factory::getApplication()->getDocument()->getWebAssetManager();
         const dropdownContainer = document.getElementById('dropdown-container');
         const searchBar = document.getElementById('search-bar'); // Corrected variable name
 
+        let lastSelectedDevice = ''; // To track the last selected device
+
         function toggleDropdown() {
             dropdownContainer.classList.toggle('open');
-            //searchBar.classList.toggle('visible'); // Corrected variable name
             searchBar.style.display = searchBar.style.display === 'block' ? 'none' : 'block';
             console.log("Toggled dropdown visibility.");
         }
@@ -147,17 +157,35 @@ $wa = Factory::getApplication()->getDocument()->getWebAssetManager();
             const selectedCheckboxes = dropdown.querySelectorAll('input[type="checkbox"]:checked');
             const selectedDevices = Array.from(selectedCheckboxes).map(checkbox => checkbox.dataset.name);
             const uniqueDevices = [...new Set(selectedDevices)];
+            const selectedCount = uniqueDevices.length;
 
-            if (uniqueDevices.length >= 2) {
-                toggleLabel.textContent = `Multiple devices selected: ${uniqueDevices[uniqueDevices.length - 1]}`;
-            } else if (uniqueDevices.length === 1) {
-                toggleLabel.textContent = `Selected device: ${uniqueDevices[0]}`;
+            let labelText = '';
+            if (selectedCount >= 4) {
+                // If 4 or more devices are selected, show only the last selected device
+                labelText = `Multiple devices selected. Last selected: ${lastSelectedDevice}`;
+            } else if (selectedCount === 3) {
+                labelText = `3 devices selected: ${selectedDevices.join(', ')}`;
+            } else if (selectedCount === 2) {
+                labelText = `2 devices selected: ${selectedDevices.join(', ')}`;
+            } else if (selectedCount === 1) {
+                labelText = `1 device selected: ${selectedDevices[0]}`;
             } else {
-                toggleLabel.textContent = 'Select Devices';
+                labelText = 'Select Devices';
             }
+
+            toggleLabel.textContent = labelText;
         }
 
-        dropdown.addEventListener('change', updateLabelText);
+        // Event listener to update the last selected device on checkbox change
+        dropdown.addEventListener('change', function(event) {
+            if (event.target.type === 'checkbox') {
+                // If the checkbox is checked, update the last selected device
+                if (event.target.checked) {
+                    lastSelectedDevice = event.target.dataset.name;
+                }
+                updateLabelText();
+            }
+        });
 
         dropdown.addEventListener('click', function(event) {
             if (event.target.classList.contains('remove-item')) {
@@ -181,33 +209,6 @@ $wa = Factory::getApplication()->getDocument()->getWebAssetManager();
 </script>
 
 <style>
-    .joomla-form-field-list-fancy-select {
-        position: relative;
-        width: 30%;
-    }
-
-    .joomla-form-field-list-fancy-select ul {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-        border: 1px solid #c80e0e;
-        max-height: 200px;
-        overflow-y: auto;
-    }
-
-    .joomla-form-field-list-fancy-select .checkbox-item {
-        padding: 5px;
-        border-bottom: 1px solid #ffffff;
-    }
-
-    .joomla-form-field-list-fancy-select .remove-device {
-        position: absolute;
-        top: 5px;
-        right: 10px;
-        cursor: pointer;
-        color: red;
-        font-size: 18px;
-    }
 
     .dropdown-container.open ul {
         display: block;
@@ -215,13 +216,14 @@ $wa = Factory::getApplication()->getDocument()->getWebAssetManager();
 
     .toggle-label {
         background-color: rgba(170, 177, 184, 0.5); /* Gray-white with transparency */
-        color: #ffffff;
+        color: black;
         padding: 10px;
         cursor: pointer;
         text-align: center;
         width: auto;
+        height: auto;
         max-width: 100%;
-        border-radius: 8px;
+        border-radius: 12px;
         display: block;
         margin: 0 auto;
     }
@@ -238,6 +240,7 @@ $wa = Factory::getApplication()->getDocument()->getWebAssetManager();
         background-clip: padding-box;
         border: 1px solid #ced4da;
         border-radius: 0.25rem;
+        margin-bottom: 10px;
         transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
     }
 
@@ -261,6 +264,7 @@ $wa = Factory::getApplication()->getDocument()->getWebAssetManager();
         padding: 10px;
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         z-index: 1000;
+        margin-top: 10px;
     }
     #dropdown {
         list-style: none;
@@ -276,14 +280,11 @@ $wa = Factory::getApplication()->getDocument()->getWebAssetManager();
         margin: 0;
         padding: 0;
         list-style: none;
-        border: 1px solid #c80e0e;
-        background-color: #ffffff;
         max-height: 200px;
         overflow-y: auto;
         width: 100%;
         position: relative;
         padding-right: 40px; /* Space for the "X" button */
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         border-radius: 8px;
     }
 
@@ -308,7 +309,43 @@ $wa = Factory::getApplication()->getDocument()->getWebAssetManager();
         color: red;
         font-size: 14px;
     }
+    .search-bar-container {
+        position: relative;
+        width: 100%;
+    }
+
+    #search-bar {
+        display: block;
+        width: 100%;
+        padding: 0.375rem 0.75rem;
+        font-size: 1rem;
+        font-weight: 400;
+        line-height: 1.5;
+        color: #495057;
+        background-color: transparent; /* No background color */
+        border: 1px solid #ced4da;
+        border-radius: 0.25rem;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        padding-left: 30px; /* Adds space for the icon */
+    }
+
+    #search-bar::placeholder {
+        padding-left: 5px; /* Moves the placeholder text 5px to the right */
+    }
+
+    .search-icon {
+        position: absolute;
+        left: 10px; /* Position the icon on the left inside the input */
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 1.2rem;
+        color: #495057;
+    }
 </style>
+
+
+
+
 
 
 
