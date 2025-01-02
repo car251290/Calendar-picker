@@ -215,15 +215,15 @@ $wa->registerAndUseStyle('bootstrap-icons', 'https://cdn.jsdelivr.net/npm/bootst
     }
 
     .toggle-label {
-        background-color: rgba(170, 177, 184, 0.5); /* Gray-white with transparency */
-        color: black;
+        background-color: rgba(236, 238, 241, 0.7); /* Gray-white with transparency */
+        color: rgba(136, 136, 138, 0.7);
         padding: 10px;
         cursor: pointer;
         text-align: center;
-        width: auto;
+        width: 200px;
         height: auto;
         max-width: 100%;
-        border-radius: 12px;
+        border-radius: 16px;
         display: block;
         margin: 0 auto;
     }
@@ -342,6 +342,9 @@ $wa->registerAndUseStyle('bootstrap-icons', 'https://cdn.jsdelivr.net/npm/bootst
         color: #495057;
     }
 </style>
+
+
+
 
 
 
